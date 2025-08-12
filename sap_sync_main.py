@@ -14,7 +14,7 @@ from utils.scheduler import dentro_janela_permitida, proxima_janela_inicio
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 
 ERROR_RETRY_INTERVAL = 60
-JSON_CHECK_INTERVAL = 60
+JSON_CHECK_INTERVAL = 3600
 processamento_lock = threading.Lock()
 
 def calcular_proxima_execucao_agendada(agora_dt, horarios):

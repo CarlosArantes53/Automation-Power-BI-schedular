@@ -1,12 +1,5 @@
 import pandas as pd
 
-def _is_number_like(v):
-    try:
-        float(str(v).replace(',', '.'))
-        return True
-    except (ValueError, TypeError):
-        return False
-
 def aplicar_formatacoes_df(df, options=None):
     if options is None:
         options = {}
