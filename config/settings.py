@@ -7,7 +7,7 @@ load_dotenv()
 
 HORARIO_PERMITIDO = {
     "dias": [0, 1, 2, 3, 4],
-    "hora_inicio": 7,
+    "hora_inicio": 6,
     "hora_fim": 18,
 }
 
