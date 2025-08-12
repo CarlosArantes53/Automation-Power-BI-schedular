@@ -18,18 +18,13 @@ JSON_CHECK_INTERVAL = 60
 processamento_lock = threading.Lock()
 
 def calcular_proxima_execucao_agendada(agora_dt, horarios):
-    """
-    Calcula o timestamp da próxima execução com base em uma lista de horários "HH:MM".
-    """
     horarios_ordenados = sorted([datetime.datetime.strptime(h, '%H:%M').time() for h in horarios])
 
-    # Procura o próximo horário no dia atual
     for horario in horarios_ordenados:
         proximo_dt = agora_dt.replace(hour=horario.hour, minute=horario.minute, second=0, microsecond=0)
         if proximo_dt > agora_dt:
             return proximo_dt.timestamp()
 
-    # Se todos os horários de hoje já passaram, agenda para o primeiro horário do próximo dia válido
     proximo_dia = agora_dt + datetime.timedelta(days=1)
     while proximo_dia.weekday() not in HORARIO_PERMITIDO['dias']:
         proximo_dia += datetime.timedelta(days=1)
@@ -38,9 +33,6 @@ def calcular_proxima_execucao_agendada(agora_dt, horarios):
     return proximo_dia.replace(hour=primeiro_horario.hour, minute=primeiro_horario.minute, second=0, microsecond=0).timestamp()
 
 def processar_tarefa(dados_conn, tarefa):
-    """
-    Executa uma única tarefa de sincronização, usando chunks para grandes volumes de dados.
-    """
     tabela = tarefa["tabela"]
     consulta = tarefa["consulta_sap"]
     colunas_esperadas = tarefa.get("colunas")
@@ -59,7 +51,6 @@ def processar_tarefa(dados_conn, tarefa):
             for cols, rows in data_iterator:
                 if primeiro_chunk and not rows:
                     logging.warning(f"Consulta retornou 0 linhas para '{tabela}'. Nenhum arquivo será gerado.")
-                    # Usamos um truque para parar o gerador
                     raise StopIteration
                 
                 df_novo = pd.DataFrame(rows, columns=cols)
@@ -70,15 +61,12 @@ def processar_tarefa(dados_conn, tarefa):
                 yield df_formatado
                 primeiro_chunk = False
         
-        # Verifica se o gerador está vazio antes de tentar salvar
         chunk_generator = processar_chunks()
         try:
             primeiro_item = next(chunk_generator)
         except StopIteration:
-             # Gerador estava vazio, nenhuma linha retornada. Tarefa considerada sucesso.
             return True
 
-        # Concatena o primeiro item de volta ao gerador para o salvamento
         import itertools
         salvar_xlsx_em_chunks_atomic(filename, itertools.chain([primeiro_item], chunk_generator), xlsx_opts)
         
@@ -94,11 +82,7 @@ def processar_tarefa(dados_conn, tarefa):
             except Exception:
                 pass
 
-
 def main():
-    """
-    Loop principal da aplicação de sincronização.
-    """
     logging.info("Iniciando sincronizador XLSX (CTRL+C para parar).")
 
     try:
@@ -154,12 +138,10 @@ def main():
                     time.sleep(sleep_secs)
                     continue
                 
-                # --- ALTERAÇÃO INICIO ---
-                # Flag para saber se alguma tarefa rodou neste ciclo
                 tarefa_executada_neste_ciclo = False
                 for item in tarefas_ativas:
                     if agora_ts >= item['proxima_execucao']:
-                        tarefa_executada_neste_ciclo = True # Marca que uma tarefa rodou
+                        tarefa_executada_neste_ciclo = True
                         tarefa_config = item['config']
                         sucesso = processar_tarefa(dados_conn, tarefa_config)
                         
@@ -171,7 +153,6 @@ def main():
                                 proxima_exec_dt = datetime.datetime.fromtimestamp(proxima_exec)
                                 logging.info(f"Tarefa '{tarefa_config['tabela']}' concluída. Próxima execução agendada para {proxima_exec_dt.strftime('%Y-%m-%d %H:%M:%S')}.")
                             else:
-                                # Log modificado para mostrar a data e hora exatas
                                 intervalo = tarefa_config.get("intervalo", 300)
                                 proxima_exec_ts = agora_ts + intervalo
                                 item['proxima_execucao'] = proxima_exec_ts
@@ -181,7 +162,6 @@ def main():
                             item['proxima_execucao'] = agora_ts + ERROR_RETRY_INTERVAL
                             logging.error(f"Tarefa '{tarefa_config['tabela']}' falhou. Nova tentativa agendada em {ERROR_RETRY_INTERVAL}s.")
                 
-                # Se uma tarefa foi executada, informa qual é a próxima da fila geral
                 if tarefa_executada_neste_ciclo:
                     if tarefas_ativas:
                         proxima_tarefa_agendada = min(tarefas_ativas, key=lambda t: t['proxima_execucao'])
@@ -189,7 +169,6 @@ def main():
                         proximo_ts = proxima_tarefa_agendada['proxima_execucao']
                         proximo_dt = datetime.datetime.fromtimestamp(proximo_ts)
                         logging.info(f"Próxima tarefa na fila: '{nome_tarefa}', agendada para {proximo_dt.strftime('%Y-%m-%d %H:%M:%S')}.")
-                # --- ALTERAÇÃO FIM ---
 
             finally:
                 processamento_lock.release()

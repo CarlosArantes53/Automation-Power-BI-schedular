@@ -29,9 +29,6 @@ def executar_consulta(conn, consulta):
         cursor.close()
 
 def executar_consulta_em_chunks(conn, consulta, chunk_size=10000):
-    """
-    Executa uma consulta e busca os resultados em lotes (chunks) usando um gerador.
-    """
     cursor = conn.cursor()
     try:
         cursor.execute(consulta)
@@ -41,8 +38,8 @@ def executar_consulta_em_chunks(conn, consulta, chunk_size=10000):
             rows = cursor.fetchmany(chunk_size)
             if not rows:
                 break
-            yield cols, rows # 'yield' transforma a função em um gerador
-
+            yield cols, rows
+            
     except dbapi.Error as e:
         logging.error(f"Erro de SQL ao executar a consulta em chunks. Detalhes: {e}")
         raise

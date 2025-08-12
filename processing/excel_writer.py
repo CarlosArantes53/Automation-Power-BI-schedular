@@ -57,9 +57,6 @@ def salvar_xlsx_atomic(path, df, options=None):
                 pass
 
 def salvar_xlsx_em_chunks_atomic(path, df_chunks, options=None):
-    """
-    Salva um arquivo .xlsx de forma atômica a partir de um iterador de DataFrames (chunks).
-    """
     tmp_file = None
     total_rows = 0
     try:
@@ -71,12 +68,8 @@ def salvar_xlsx_em_chunks_atomic(path, df_chunks, options=None):
             for df_chunk in df_chunks:
                 df_chunk.to_excel(writer, index=False, sheet_name='data', header=header, startrow=writer.sheets['data'].max_row if not header else 0)
                 total_rows += len(df_chunk)
-                header = False # O cabeçalho é escrito apenas uma vez
-
-        # A formatação de colunas é mais complexa em modo de chunk e pode ser omitida
-        # para grandes arquivos para economizar memória, ou aplicada de forma simplificada.
-        # Por simplicidade, vamos omitir a formatação detalhada por coluna nesta versão.
-
+                header = False
+                
         os.replace(tmp_file, path)
         logging.info(f"Arquivo salvo: {path} (total de linhas={total_rows})")
 
