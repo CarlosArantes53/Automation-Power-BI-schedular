@@ -1,5 +1,9 @@
 import json
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 HORARIO_PERMITIDO = {
     "dias": [0, 1, 2, 3, 4],
@@ -7,11 +11,19 @@ HORARIO_PERMITIDO = {
     "hora_fim": 18,
 }
 
-FIREBASE_CRED_JSON = "sgdd-riofer-firebase-adminsdk-fbsvc-5ea260b23b.json"
-SECRET_KEY_FILE = "secret.key"
-TAREFAS_JSON_FILE = "tarefas.json"
+FIREBASE_CRED_JSON = os.getenv("FIREBASE_CRED_JSON")
+SECRET_KEY_FILE = os.getenv("SECRET_KEY_FILE")
+TAREFAS_JSON_FILE = os.getenv("TAREFAS_JSON_FILE")
+
+if not all([FIREBASE_CRED_JSON, SECRET_KEY_FILE, TAREFAS_JSON_FILE]):
+    raise ValueError("Uma ou mais variáveis de ambiente essenciais não foram definidas!")
+
 
 def carregar_tarefas():
+    if not TAREFAS_JSON_FILE:
+        logging.error("A variável de ambiente 'TAREFAS_JSON_FILE' não está configurada.")
+        return None
+
     try:
         with open(TAREFAS_JSON_FILE, 'r', encoding='utf-8') as f:
             tarefas = json.load(f)
@@ -26,3 +38,11 @@ def carregar_tarefas():
     except Exception as e:
         logging.exception(f"Erro inesperado ao carregar as tarefas: {e}")
         return None
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+    tarefas_carregadas = carregar_tarefas()
+    if tarefas_carregadas:
+        print("Tarefas carregadas:", tarefas_carregadas)
+    else:
+        print("Falha ao carregar as tarefas.")
