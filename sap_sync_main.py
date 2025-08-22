@@ -8,7 +8,7 @@ from config.settings import carregar_tarefas, TAREFAS_JSON_FILE, HORARIO_PERMITI
 from config.credentials import obter_credenciais_sap
 from sap.connection import conectar_sap, executar_consulta_em_chunks
 from processing.dataframe_handler import aplicar_formatacoes_df
-from processing.excel_writer import salvar_xlsx_em_chunks_atomic
+from processing.file_writer import salvar_atomicamente
 from utils.scheduler import dentro_janela_permitida, proxima_janela_inicio
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
@@ -35,14 +35,15 @@ def calcular_proxima_execucao_agendada(agora_dt, horarios):
 def processar_tarefa(dados_conn, tarefa):
     tabela = tarefa["tabela"]
     consulta = tarefa["consulta_sap"]
+    formato = tarefa.get("formato_saida", "xlsx")
     colunas_esperadas = tarefa.get("colunas")
     xlsx_opts = tarefa.get('xlsx_options', {})
     chunk_size = tarefa.get('chunk_size', 10000)
-    filename = f"{tabela}.xlsx"
+    filename = f"{tabela}.{formato}"
     conn = None
 
     try:
-        logging.info(f"Iniciando processamento da tarefa: '{tabela}'")
+        logging.info(f"Iniciando processamento da tarefa: '{tabela}' para o formato '{formato}'")
         conn = conectar_sap(dados_conn)
 
         def processar_chunks():
@@ -63,14 +64,13 @@ def processar_tarefa(dados_conn, tarefa):
         
         chunk_generator = processar_chunks()
         try:
-            primeiro_item = next(chunk_generator)
+            chunks = list(chunk_generator)
+            if not chunks:
+                logging.warning(f"Nenhum dado retornado para a tarefa '{tabela}'.")
+                return True
         except StopIteration:
             return True
-
-        import itertools
-        salvar_xlsx_em_chunks_atomic(filename, itertools.chain([primeiro_item], chunk_generator), xlsx_opts)
-        
-        return True
+        return salvar_atomicamente(filename, chunks, formato)
 
     except Exception as e:
         logging.error(f"Falha ao processar a tarefa '{tabela}'. Causa: {e}")
@@ -83,7 +83,7 @@ def processar_tarefa(dados_conn, tarefa):
                 pass
 
 def main():
-    logging.info("Iniciando sincronizador XLSX (CTRL+C para parar).")
+    logging.info("Iniciando sincronizador (CTRL+C para parar).")
 
     try:
         dados_conn = obter_credenciais_sap()

@@ -5,3 +5,5 @@ env/
 *.json
 secret.key
 *.xlsx
+*.csv
+*.parquet
