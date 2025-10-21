@@ -8,7 +8,7 @@ load_dotenv()
 HORARIO_PERMITIDO = {
     "dias": [0, 1, 2, 3, 4],
     "hora_inicio": 6,
-    "hora_fim": 18,
+    "hora_fim": 19,
 }
 
 FIREBASE_CRED_JSON = os.getenv("FIREBASE_CRED_JSON")
