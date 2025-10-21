@@ -1,0 +1,6 @@
+pandas
+hdbcli
+cryptography
+firebase_admin
+python-dotenv
+pyarrow
