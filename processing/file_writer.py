@@ -68,6 +68,8 @@ def salvar_parquet_atomic(path, df_chunks):
         
         full_df.to_parquet(tmp_file, index=False, engine='pyarrow')
 
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
         os.replace(tmp_file, path)
         logging.info(f"Arquivo salvo: {path} (total de linhas={total_rows})")
         return True
