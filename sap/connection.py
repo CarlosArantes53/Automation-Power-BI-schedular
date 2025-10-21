@@ -2,10 +2,10 @@ import logging
 from hdbcli import dbapi
 
 def conectar_sap(dados):
-    address = dados.get("host")
-    port = dados.get("port")
-    user = dados.get("user")
-    password = dados.get("key")
+    address = dados.get("HOST")
+    port = dados.get("PORT")
+    user = dados.get("USUARIO")
+    password = dados.get("SENHA")
 
     if not all([address, port, user, password]):
         raise RuntimeError("Credenciais SAP incompletas. Verifique address/port/user/password.")
