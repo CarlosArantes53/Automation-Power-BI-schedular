@@ -7,4 +7,5 @@ secret.key
 *.xlsx
 *.csv
 *.parquet
+*.db 
 *.ipynb
