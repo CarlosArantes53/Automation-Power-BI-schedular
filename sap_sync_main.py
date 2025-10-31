@@ -33,17 +33,25 @@ def calcular_proxima_execucao_agendada(agora_dt, horarios):
     return proximo_dia.replace(hour=primeiro_horario.hour, minute=primeiro_horario.minute, second=0, microsecond=0).timestamp()
 
 def processar_tarefa(dados_conn, tarefa):
-    tabela = tarefa["tabela"]
+    tabela_ou_planilha = tarefa["tabela"] 
     consulta = tarefa["consulta_sap"]
     formato = tarefa.get("formato_saida", "xlsx")
+    
+    arquivo_saida = tarefa.get("arquivo_saida") 
+    
     colunas_esperadas = tarefa.get("colunas")
     xlsx_opts = tarefa.get('xlsx_options', {})
     chunk_size = tarefa.get('chunk_size', 10000)
-    filename = f"{tabela}.{formato}"
+    
+    if arquivo_saida:
+        filename = arquivo_saida
+    else:
+        filename = f"{tabela_ou_planilha}.{formato}"
+        
     conn = None
 
     try:
-        logging.info(f"Iniciando processamento da tarefa: '{tabela}' para o formato '{formato}'")
+        logging.info(f"Iniciando processamento: '{tabela_ou_planilha}' -> {filename} (Formato: '{formato}')")
         conn = conectar_sap(dados_conn)
 
         def processar_chunks():
@@ -51,7 +59,7 @@ def processar_tarefa(dados_conn, tarefa):
             primeiro_chunk = True
             for cols, rows in data_iterator:
                 if primeiro_chunk and not rows:
-                    logging.warning(f"Consulta retornou 0 linhas para '{tabela}'. Nenhum arquivo será gerado.")
+                    logging.warning(f"Consulta retornou 0 linhas para '{tabela_ou_planilha}'. Nenhum dado será escrito.")
                     raise StopIteration
                 
                 df_novo = pd.DataFrame(rows, columns=cols)
@@ -66,14 +74,14 @@ def processar_tarefa(dados_conn, tarefa):
         try:
             chunks = list(chunk_generator)
             if not chunks:
-                logging.warning(f"Nenhum dado retornado para a tarefa '{tabela}'.")
+                logging.warning(f"Nenhum dado retornado para a tarefa '{tabela_ou_planilha}'.")
                 return True
         except StopIteration:
             return True
-        return salvar_atomicamente(filename, chunks, formato)
-
+        
+        return salvar_atomicamente(filename, chunks, formato, target_name=tabela_ou_planilha)
     except Exception as e:
-        logging.error(f"Falha ao processar a tarefa '{tabela}'. Causa: {e}")
+        logging.error(f"Falha ao processar a tarefa '{tabela_ou_planilha}'. Causa: {e}")
         return False
     finally:
         if conn:
